@@ -71,7 +71,7 @@ public class Interact2 {
         // changed for a different environment and two agents
         Runnable envir = new Gomoku(envirIn, envirOut);
         
-        Runnable agent1 = new GomokuPlayer(agent1In, agent1Out);
+        Runnable agent1 = new IramLeePlayer(agent1In, agent1Out);
         // Runnable agent1 = new HumanPlayer(agent1In, agent1Out);
         
         Runnable agent2 = new GomokuPlayer(agent2In, agent2Out);
