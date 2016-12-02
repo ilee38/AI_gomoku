@@ -12,8 +12,8 @@ public class IramLeePlayer implements Runnable {
 	public static final int LOSE = -1000000;
 
 	// weights for evaluating a Gomoku position
-	public static final int[] PLAYER_WEIGHTS = {0, 1, 2, 3, 4, WIN};
-	public static final int[] OPPONENT_WEIGHTS = {0, -1, -2, -3, -4, LOSE};
+	public static final int[] PLAYER_WEIGHTS = {0, 100, 1000, 10000, 100000, WIN};
+	public static final int[] OPPONENT_WEIGHTS = {0, -100, -1000, -10000, -100000, LOSE};
 	
 	// directions for wonGame method when checking for five in lines
 	public static final int[] RDIR = { 1, 0, 1, 1 };
