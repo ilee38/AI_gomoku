@@ -12,8 +12,8 @@ public class IramLee2point0Player implements Runnable {
 	public static final int LOSE = -1000000;
 
 	// weights for evaluating a Gomoku position
-	public static final int[] PLAYER_WEIGHTS = {0, 100, 1000, 10000, 100000, WIN};
-	public static final int[] OPPONENT_WEIGHTS = {0, -100, -1000, -10000, -100000, LOSE};
+	public static final int[] PLAYER_WEIGHTS = {0, 1, 1000, 10000, 100000, WIN};
+	public static final int[] OPPONENT_WEIGHTS = {0, -1, -1000, -10000, -100000, LOSE};
 	
 	// directions for wonGame method when checking for five in lines
 	public static final int[] RDIR = { 1, 0, 1, 1 };
@@ -61,8 +61,8 @@ public class IramLee2point0Player implements Runnable {
 		while (!gameOver) {
 			// stop loop if game is over
 			if (whoseTurn == player) {
-				int alpha = -2000000000;
-				int beta = 2000000000;
+				int alpha = -2000000000;	//initialize to -infinity (or close to int min value)
+				int beta = 2000000000;		//initialize to infinity (or close to int max value)
 				// for storing the chosen move
 				// row is the 10s digit
 				// col is the 1s digit
@@ -140,7 +140,7 @@ public class IramLee2point0Player implements Runnable {
  	 */
 	public int maxNode(int[][] board, int player, int opponent, int depth, boolean topCall, int alpha, int beta) {
 		int move = -1;
-		int maxEval = -2000000000;
+		int maxEval = 0; //-2000000000;		//initialize to -infinity (or close to int min value)
 		int eval = 0;
 		for (int r = 1; r <= 10; r++) {
 			for (int c = 1; c <= 10; c++) {
@@ -185,7 +185,7 @@ public class IramLee2point0Player implements Runnable {
  	 */
 	public int minNode(int[][] board, int player, int opponent, int depth, int alpha, int beta) {
 		boolean minEvalNotAssignedYet = true;
-		int minEval = 2000000000;
+		int minEval = 0; //2000000000;		//initialize to infinity (or close to int max value)
 		int eval = 0;
 		for (int r = 1; r <= 10; r++) {
 			for (int c = 1; c <= 10; c++) {
