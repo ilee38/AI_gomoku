@@ -3,7 +3,7 @@ package gomoku;
 import java.io.*;
 import java.util.*;
 
-public class IramLee2point0Player implements Runnable {
+public class IramLeePlayer2point1 implements Runnable {
 	Scanner in; // for reading from the agent
 	PrintStream out; // for printing info to the agent
 	
@@ -18,14 +18,19 @@ public class IramLee2point0Player implements Runnable {
 	// directions for wonGame method when checking for five in lines
 	public static final int[] RDIR = { 1, 0, 1, 1 };
 	public static final int[] CDIR = { 0, 1, 1, -1 };
+	
+	HashMap<Integer, Integer> movesTable = new HashMap<Integer, Integer>();
+	Integer[] sortedMoves;
+	int turnCount = 0;
 
-	public IramLee2point0Player(Scanner in, PrintStream out) {
+	public IramLeePlayer2point1(Scanner in, PrintStream out) {
 		this.in = in;
 		this.out = out;
 	}
 
 	public void run() {
 		int[][] board = new int[12][12];
+		
 		// store -1 in positions just off the board
 		for (int i = 0; i < 12; i++) {
 			board[i][0] = -1;
@@ -36,7 +41,8 @@ public class IramLee2point0Player implements Runnable {
 
 		int whoseTurn = 1;
 		boolean gameOver = false;
-
+		int depth = 4;
+		
 		// expecting you are agent X message
 		int player = 0, opponent = 0;
 		String line = in.nextLine();
@@ -63,13 +69,21 @@ public class IramLee2point0Player implements Runnable {
 			if (whoseTurn == player) {
 				int alpha = -2000000000;	//initialize to -infinity (or close to int min value)
 				int beta = 2000000000;		//initialize to infinity (or close to int max value)
+				int move = 0;
 				// for storing the chosen move
 				// row is the 10s digit
 				// col is the 1s digit
-				int move = maxNode(board, player, opponent, 4, true, alpha, beta);
+				//if(turnCount >= 26){depth = 5;}
+				if(turnCount == 0){
+					move = maxNodeInitial(board, player, opponent, depth, true, alpha, beta);
+					orderMoves();
+				}else{
+					move = maxNode(board, player, opponent, depth, true, alpha, beta);
+				}
 				int row = move / 10;
 				int col = move % 10;
-
+				turnCount++;
+				
 				// print the move
 				out.print(row + " " + col);
 				out.print('\n');
@@ -101,6 +115,7 @@ public class IramLee2point0Player implements Runnable {
 				}
 			}
 		}
+		turnCount = 0; 
 		in.close();
 		out.close();
 	}
@@ -129,6 +144,87 @@ public class IramLee2point0Player implements Runnable {
     	}
     	return false;
     }
+  
+    
+    public int maxNodeInitial(int[][] board, int player, int opponent, int depth, boolean topCall, int alpha, int beta){
+		int move = -1;
+		int maxEval = 0; 
+		int eval = 0;
+			for (int r = 1; r <= 10; r++) {
+				for (int c = 1; c <= 10; c++) {
+					if (board[r][c] == 0) {
+						board[r][c] = player;
+						if (wonGame(board, player, r, c)) {
+							eval = WIN + depth;  // prefer shorter paths to a win
+						} else if (depth <= 1) {
+							eval = gomokuEval(board, player, opponent);
+						} else {
+							eval = minNodeInitial(board, player, opponent, depth - 1, alpha, beta);
+						}
+						//at this point, save (r,c) and eval value for each move.
+						movesTable.put(eval, (r-1)*10 + (c-1));
+						if (move == -1 || eval > maxEval) {
+							// avoid off by one
+							move = (r - 1) * 10 + (c - 1);
+							maxEval = eval;
+						}
+						if(maxEval > alpha){
+							alpha = maxEval;
+						}
+						if(beta <= alpha){
+							board[r][c] = 0;
+							if (topCall)
+								return move;
+							return maxEval;
+						}
+
+						board[r][c] = 0;
+					}
+				}
+			}
+		
+		if (topCall)
+			return move;
+		return maxEval;
+	}
+    
+    
+    public int minNodeInitial(int[][] board, int player, int opponent, int depth, int alpha, int beta){
+		boolean minEvalNotAssignedYet = true;
+		int minEval = 0;
+		int eval = 0;
+			for (int r = 1; r <= 10; r++) {
+				for (int c = 1; c <= 10; c++) {
+					if (board[r][c] == 0) {
+						board[r][c] = opponent;
+						
+						if (wonGame(board, opponent, r, c)) {
+							eval = LOSE - depth;  // prefer longer paths to a loss
+						} else if (depth <= 1) {
+							eval = gomokuEval(board, player, opponent);
+						} else {
+							eval = maxNodeInitial(board, player, opponent, depth - 1, false, alpha, beta);
+						}
+						
+						if (minEvalNotAssignedYet || eval < minEval) {
+							minEvalNotAssignedYet = false;
+							minEval = eval;
+						}
+						if(minEval < beta){
+							beta = minEval;
+						}
+						if(beta <= alpha){
+							board[r][c] = 0;
+							return minEval;
+						}
+
+						board[r][c] = 0;
+					}
+				}
+			}
+		
+		return minEval;
+	}
 
 	/*
 	 * Max node in a minimax search.
@@ -138,12 +234,14 @@ public class IramLee2point0Player implements Runnable {
      * r is used to index into the board so it is between 1 and 10.
      * Same thing for c.
  	 */
-	public int maxNode(int[][] board, int player, int opponent, int depth, boolean topCall, int alpha, int beta) {
+	public int maxNode(int[][] board, int player, int opponent, int depth, boolean topCall, int alpha, int beta){
 		int move = -1;
 		int maxEval = 0; //-2000000000;		//initialize to -infinity (or close to int min value)
 		int eval = 0;
-		for (int r = 1; r <= 10; r++) {
-			for (int c = 1; c <= 10; c++) {
+		//	for(int i = sortedMoves.length - 1; i >= 0; i--){
+			for(int i = 0; i < sortedMoves.length; i++){
+				int r = movesTable.get(sortedMoves[i]) / 10;
+				int c = movesTable.get(sortedMoves[i]) % 10;
 				if (board[r][c] == 0) {
 					board[r][c] = player;
 					if (wonGame(board, player, r, c)) {
@@ -153,6 +251,7 @@ public class IramLee2point0Player implements Runnable {
 					} else {
 						eval = minNode(board, player, opponent, depth - 1, alpha, beta);
 					}
+					
 					if (move == -1 || eval > maxEval) {
 						// avoid off by one
 						move = (r - 1) * 10 + (c - 1);
@@ -163,13 +262,15 @@ public class IramLee2point0Player implements Runnable {
 					}
 					if(beta <= alpha){
 						board[r][c] = 0;
+						if (topCall)
+							return move;
 						return maxEval;
 					}
 
 					board[r][c] = 0;
 				}
 			}
-		}
+		
 		if (topCall)
 			return move;
 		return maxEval;
@@ -183,12 +284,14 @@ public class IramLee2point0Player implements Runnable {
      * r is used to index into the board so it is between 1 and 10.
      * Same thing for c.
  	 */
-	public int minNode(int[][] board, int player, int opponent, int depth, int alpha, int beta) {
+	public int minNode(int[][] board, int player, int opponent, int depth, int alpha, int beta){
 		boolean minEvalNotAssignedYet = true;
 		int minEval = 0; //2000000000;		//initialize to infinity (or close to int max value)
 		int eval = 0;
-		for (int r = 1; r <= 10; r++) {
-			for (int c = 1; c <= 10; c++) {
+		//	for(int i = sortedMoves.length - 1; i >= 0; i--){
+			for(int i = 0; i < sortedMoves.length; i++){
+				int r = movesTable.get(sortedMoves[i]) / 10;
+				int c = movesTable.get(sortedMoves[i]) % 10;
 				if (board[r][c] == 0) {
 					board[r][c] = opponent;
 					
@@ -214,7 +317,7 @@ public class IramLee2point0Player implements Runnable {
 					board[r][c] = 0;
 				}
 			}
-		}
+		
 
 		return minEval;
 	}
@@ -321,4 +424,63 @@ public class IramLee2point0Player implements Runnable {
 
 		return eval;
 	}
+	
+	
+/*
+ * Creates a Set containing all the key values (eval) on the movesTable
+ * and creates an ordered array from lowest to highest. These represent
+ * the value of each move evaluated during the 1st call to the maxNode()
+ * method.
+ * 
+ * */	
+	public void orderMoves(){
+		Set<Integer> moveValues;
+		int index = 0;
+		moveValues = movesTable.keySet();
+		Integer[] movesArray = new Integer[moveValues.size()];
+	//	Integer[] workArray = new Integer[moveValues.size()];
+		Iterator<Integer> it = moveValues.iterator();
+		while(it.hasNext()){
+			movesArray[index] = (Integer) it.next();
+			index++;
+		}
+		sortArray(movesArray, 0, movesArray.length - 1);
+		sortedMoves = movesArray;
+	}
+	
+	
+	
+/*
+ * Uses Quicksort to order the array of move values
+ * 
+ * */	
+	public void sortArray(Integer[] movesArray, int start, int end){
+		if(start < end){
+			int partition = split(movesArray, start, end);
+			sortArray(movesArray, start, partition - 1);
+			sortArray(movesArray, partition, end);
+		}
+	}
+	
+	public int split(Integer[] movesArray, int left, int right){
+		int pivot = movesArray[(left + right) / 2];
+		while(left <= right){
+			while(movesArray[left] < pivot){
+				left++;
+			}
+			while(movesArray[right] > pivot){
+				right--;
+			}
+			if(left <= right){
+				int tmp = movesArray[left];
+				movesArray[left] = movesArray[right];
+				movesArray[right] = tmp;
+				left++;
+				right--;
+			}
+		}
+		return left;
+	}
+	
+	
 }

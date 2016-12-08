@@ -12,8 +12,8 @@ public class IramLeePlayer implements Runnable {
 	public static final int LOSE = -1000000;
 
 	// weights for evaluating a Gomoku position
-	public static final int[] PLAYER_WEIGHTS = {0, 100, 1000, 10000, 100000, WIN};
-	public static final int[] OPPONENT_WEIGHTS = {0, -100, -1000, -10000, -100000, LOSE};
+	public static final int[] PLAYER_WEIGHTS = {0, 1, 1000, 10000, 100000, WIN};
+	public static final int[] OPPONENT_WEIGHTS = {0, -1, -1000, -10000, -100000, LOSE};
 	
 	// directions for wonGame method when checking for five in lines
 	public static final int[] RDIR = { 1, 0, 1, 1 };
@@ -61,10 +61,12 @@ public class IramLeePlayer implements Runnable {
 		while (!gameOver) {
 			// stop loop if game is over
 			if (whoseTurn == player) {
+				int alpha = -2000000000;	//initialize to -infinity (or close to int min value)
+				int beta = 2000000000;		//initialize to infinity (or close to int max value)
 				// for storing the chosen move
 				// row is the 10s digit
 				// col is the 1s digit
-				int move = maxNode(board, player, opponent, 3, true);
+				int move = maxNode(board, player, opponent, 4, true, alpha, beta);
 				int row = move / 10;
 				int col = move % 10;
 
@@ -136,9 +138,9 @@ public class IramLeePlayer implements Runnable {
      * r is used to index into the board so it is between 1 and 10.
      * Same thing for c.
  	 */
-	public int maxNode(int[][] board, int player, int opponent, int depth, boolean topCall) {
+	public int maxNode(int[][] board, int player, int opponent, int depth, boolean topCall, int alpha, int beta) {
 		int move = -1;
-		int maxEval = 0;
+		int maxEval = 0; //-2000000000;		//initialize to -infinity (or close to int min value)
 		int eval = 0;
 		for (int r = 1; r <= 10; r++) {
 			for (int c = 1; c <= 10; c++) {
@@ -149,12 +151,21 @@ public class IramLeePlayer implements Runnable {
 					} else if (depth <= 1) {
 						eval = gomokuEval(board, player, opponent);
 					} else {
-						eval = minNode(board, player, opponent, depth - 1);
+						eval = minNode(board, player, opponent, depth - 1, alpha, beta);
 					}
 					if (move == -1 || eval > maxEval) {
 						// avoid off by one
 						move = (r - 1) * 10 + (c - 1);
 						maxEval = eval;
+					}
+					if(maxEval > alpha){
+						alpha = maxEval;
+					}
+					if(beta <= alpha){
+						board[r][c] = 0;
+						if (topCall)
+							return move;
+						return maxEval;
 					}
 
 					board[r][c] = 0;
@@ -174,9 +185,9 @@ public class IramLeePlayer implements Runnable {
      * r is used to index into the board so it is between 1 and 10.
      * Same thing for c.
  	 */
-	public int minNode(int[][] board, int player, int opponent, int depth) {
+	public int minNode(int[][] board, int player, int opponent, int depth, int alpha, int beta) {
 		boolean minEvalNotAssignedYet = true;
-		int minEval = 0;
+		int minEval = 0; //2000000000;		//initialize to infinity (or close to int max value)
 		int eval = 0;
 		for (int r = 1; r <= 10; r++) {
 			for (int c = 1; c <= 10; c++) {
@@ -188,11 +199,18 @@ public class IramLeePlayer implements Runnable {
 					} else if (depth <= 1) {
 						eval = gomokuEval(board, player, opponent);
 					} else {
-						eval = maxNode(board, player, opponent, depth - 1, false);
+						eval = maxNode(board, player, opponent, depth - 1, false, alpha, beta);
 					}
 					if (minEvalNotAssignedYet || eval < minEval) {
 						minEvalNotAssignedYet = false;
 						minEval = eval;
+					}
+					if(minEval < beta){
+						beta = minEval;
+					}
+					if(beta <= alpha){
+						board[r][c] = 0;
+						return minEval;
 					}
 
 					board[r][c] = 0;
